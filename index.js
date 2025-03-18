@@ -1,20 +1,36 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActivityType, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const util = require('minecraft-server-util');
 require('dotenv').config();
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.Guilds
   ]
 });
 
 // Configuration
-const PREFIX = '!mc';
 const DEFAULT_SERVER = 'play.uduality.site';
 const DEFAULT_PORT = 19231; 
 let lastPlayerCount = 0;
+
+// Define slash commands
+const commands = [
+  new SlashCommandBuilder()
+    .setName('status')
+    .setDescription('Check the status of a Minecraft server')
+    .addStringOption(option => 
+      option.setName('server')
+        .setDescription('The server address (optional)')
+        .setRequired(false))
+    .addIntegerOption(option => 
+      option.setName('port')
+        .setDescription('The server port (optional)')
+        .setRequired(false)),
+  
+  new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('Show help information about the bot commands')
+];
 
 // Function to update bot's status with player count
 async function updateBotStatus() {
@@ -44,8 +60,23 @@ async function updateBotStatus() {
 }
 
 // Ready event
-client.on('ready', () => {
+client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}!`);
+  
+  // Register slash commands
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    console.log('Started refreshing application (/) commands.');
+
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands.map(command => command.toJSON()) },
+    );
+
+    console.log('Successfully reloaded application (/) commands.');
+  } catch (error) {
+    console.error('Error registering slash commands:', error);
+  }
   
   // Set initial status
   updateBotStatus();
@@ -54,24 +85,20 @@ client.on('ready', () => {
   setInterval(updateBotStatus, 5 * 60 * 1000);
 });
 
-// Message event
-client.on('messageCreate', async message => {
-  // Ignore messages from bots or messages that don't start with the prefix
-  if (message.author.bot || !message.content.startsWith(PREFIX)) return;
-  
-  // Parse the command
-  const args = message.content.slice(PREFIX.length).trim().split(' ');
-  const command = args.shift().toLowerCase();
-  
-  // Handle commands
-  if (command === 'status' || command === 'players') {
-    // Get server address and port from arguments or use defaults
-    const serverAddress = args[0] || DEFAULT_SERVER;
-    const serverPort = parseInt(args[1]) || DEFAULT_PORT;
+// Interaction handler for slash commands
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isCommand()) return;
+
+  const { commandName, options } = interaction;
+
+  if (commandName === 'status') {
+    // Get server address and port from options or use defaults
+    const serverAddress = options.getString('server') || DEFAULT_SERVER;
+    const serverPort = options.getInteger('port') || DEFAULT_PORT;
     
     try {
-      // Send a typing indicator while fetching data
-      await message.channel.sendTyping();
+      // Defer reply as this might take a moment
+      await interaction.deferReply();
       
       // Get server status
       const result = await util.status(serverAddress, serverPort);
@@ -105,24 +132,23 @@ client.on('messageCreate', async message => {
       }
       
       // Send the embed
-      await message.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       console.error('Error fetching server status:', error);
-      await message.reply(`Error connecting to server ${serverAddress}:${serverPort}. Make sure the server is online and the address is correct.`);
+      await interaction.editReply(`Error connecting to server ${serverAddress}:${serverPort}. Make sure the server is online and the address is correct.`);
     }
-  } else if (command === 'help') {
+  } else if (commandName === 'help') {
     // Help command
     const helpEmbed = new EmbedBuilder()
       .setColor('#0099FF')
       .setTitle('Minecraft Server Status Bot Commands')
       .addFields(
-        { name: `${PREFIX} status [server] [port]`, value: 'Check the status of a Minecraft server' },
-        { name: `${PREFIX} players [server] [port]`, value: 'Check how many players are online (alias for status)' },
-        { name: `${PREFIX} help`, value: 'Show this help message' }
+        { name: `/status [server] [port]`, value: 'Check the status of a Minecraft server' },
+        { name: `/help`, value: 'Show this help message' }
       )
       .setFooter({ text: 'If server and port are not specified, defaults will be used' });
     
-    await message.reply({ embeds: [helpEmbed] });
+    await interaction.reply({ embeds: [helpEmbed] });
   }
 });
 
