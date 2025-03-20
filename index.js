@@ -66,10 +66,6 @@ const commands = [
     .setDescription('Show detailed information about the default Minecraft server'),
 
   new SlashCommandBuilder()
-    .setName('activate')
-    .setDescription('Helps you qualify for the Active Developer badge'),
-
-  new SlashCommandBuilder()
     .setName('history')
     .setDescription('Show server uptime history and statistics'),
 
@@ -429,22 +425,6 @@ client.on('interactionCreate', async interaction => {
       
       await interaction.editReply({ embeds: [errorEmbed] });
     }
-  }
-  
-  else if (commandName === 'activate') {
-    const activateEmbed = new EmbedBuilder()
-      .setColor('#5865F2')
-      .setTitle('🏆 Active Developer Badge')
-      .setDescription('This interaction helps you qualify for the Active Developer Badge!')
-      .addFields(
-        { name: 'Next Steps', value: 'Visit the [Developer Portal](https://discord.com/developers/active-developer) to claim your badge' },
-        { name: 'Requirements', value: 'You need to wait up to 24 hours after using this command before claiming the badge' },
-        { name: 'More Info', value: '[Discord Active Developer Program](https://support-dev.discord.com/hc/en-us/articles/10113997751447-Active-Developer-Badge)' }
-      )
-      .setTimestamp()
-      .setFooter({ text: 'Badge activation', iconURL: client.user.displayAvatarURL() });
-    
-    await interaction.reply({ embeds: [activateEmbed] });
   }
 
   else if (commandName === 'history') {
