@@ -11,8 +11,6 @@ const client = new Client({
 const DEFAULT_SERVER = 'play.uduality.site';
 const DEFAULT_PORT = 19231; 
 let lastPlayerCount = 0;
-let lastServerOnline = null;
-const STATUS_CHANNEL_ID = '1350087236812800050';
 
 const commands = [
   new SlashCommandBuilder()
@@ -61,13 +59,6 @@ async function updateBotStatus() {
     const result = await util.status(DEFAULT_SERVER, DEFAULT_PORT);
     lastPlayerCount = result.players.online;
     
-    // Check if this is a status change
-    if (lastServerOnline === false || lastServerOnline === null) {
-      // Server came online
-      notifyServerStatusChange(true);
-    }
-    lastServerOnline = true;
-    
     client.user.setPresence({
       activities: [{
         name: `${lastPlayerCount}/${result.players.max} players on ${DEFAULT_SERVER}`,
@@ -79,14 +70,6 @@ async function updateBotStatus() {
     console.log(`Updated status: ${lastPlayerCount}/${result.players.max} players online`);
   } catch (error) {
     console.error('Failed to update status:', error);
-    
-    // Check if this is a status change
-    if (lastServerOnline === true || lastServerOnline === null) {
-      // Server went offline
-      notifyServerStatusChange(false);
-    }
-    lastServerOnline = false;
-    
     client.user.setPresence({
       activities: [{
         name: `${DEFAULT_SERVER} | Server offline`,
@@ -94,44 +77,6 @@ async function updateBotStatus() {
       }],
       status: 'dnd'
     });
-  }
-}
-
-// Function to notify about server status changes
-async function notifyServerStatusChange(isOnline) {
-  if (!STATUS_CHANNEL_ID) {
-    console.log('Status channel ID not configured. Skipping notification.');
-    return;
-  }
-  
-  try {
-    const channel = await client.channels.fetch(STATUS_CHANNEL_ID);
-    if (!channel) {
-      console.error('Could not find the status notification channel');
-      return;
-    }
-    
-    if (isOnline) {
-      const onlineEmbed = new EmbedBuilder()
-        .setColor('#00AA00')
-        .setTitle('🟢 Minecraft Server Online')
-        .setDescription(`The server **${DEFAULT_SERVER}** is now **ONLINE**!`)
-        .setTimestamp()
-        .setFooter({ text: 'Server status notification', iconURL: client.user.displayAvatarURL() });
-      
-      await channel.send({ embeds: [onlineEmbed] });
-    } else {
-      const offlineEmbed = new EmbedBuilder()
-        .setColor('#FF0000')
-        .setTitle('🔴 Minecraft Server Offline')
-        .setDescription(`The server **${DEFAULT_SERVER}** is now **OFFLINE**!`)
-        .setTimestamp()
-        .setFooter({ text: 'Server status notification', iconURL: client.user.displayAvatarURL() });
-      
-      await channel.send({ embeds: [offlineEmbed] });
-    }
-  } catch (error) {
-    console.error('Error sending server status notification:', error);
   }
 }
 
@@ -154,8 +99,7 @@ client.once('ready', async () => {
   
   updateBotStatus();
   
-  // Check server status more frequently to detect changes faster
-  setInterval(updateBotStatus, 2 * 60 * 1000); // Check every 2 minutes
+  setInterval(updateBotStatus, 5 * 60 * 1000);
 });
 
 client.on('interactionCreate', async interaction => {
