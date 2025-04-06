@@ -1,0 +1,35 @@
+{
+  "title": "Join Our Minecraft Server",
+  "description": "Ready to play? Follow these steps to join our server.",
+  "color": 3066993,
+  "fields": [
+    {
+      "name": "⚙️ Requirements",
+      "value": "• Minecraft Java Edition 1.21.4\n• Fabric Loader (For Non-cracked clients)\n• Simple Voice Chat mod",
+      "inline": false
+    },
+    {
+      "name": "🚀 Installation Steps",
+      "value": "1. Install Fabric Loader from [fabricmc.net](https://fabricmc.net/use/)\n2. Download Simple Voice Chat mod from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/simple-voice-chat)\n3. Place mod in your `.minecraft/mods` folder",
+      "inline": false
+    },
+    {
+      "name": "🌐 Server Address",
+      "value": "play.uduality.site",
+      "inline": true
+    },
+    {
+      "name": "🔄 Version",
+      "value": "1.21.4 Fabric",
+      "inline": true
+    },
+    {
+      "name": "🔓 Crack (Legacy Launcher) Tutorial",
+      "value": "1. Download and install [Legacy Launcher](https://llaun.ch/)\n2. Create a new profile with Fabric version 1.21.4\n3. Add Simple Voice Chat and other necessary mods to the profile's mods folder\n4. Launch the game and connect to `play.uduality.site`",
+      "inline": false
+    }
+  ],
+  "footer": {
+    "text": "Questions? DM @justrecht"
+  }
+}

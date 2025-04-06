@@ -15,6 +15,7 @@ const DEFAULT_PORT = 19231;
 let lastPlayerCount = 0;
 let lastServerOnline = null;
 const STATUS_CHANNEL_ID = '1357623867824144435';
+const WELCOME_CHANNEL_ID = '1357817236072562759';
 
 let serverStats = {
   uptime: 0,
@@ -281,6 +282,20 @@ client.once('ready', async () => {
     );
 
     console.log('Successfully reloaded application (/) commands.');
+
+    // Send welcome message
+    try {
+      const welcomeEmbed = JSON.parse(fs.readFileSync('./discord-embed.json'));
+      const channel = await client.channels.fetch(WELCOME_CHANNEL_ID);
+      if (channel) {
+        await channel.send({ embeds: [welcomeEmbed] });
+        console.log('Welcome message sent successfully');
+      } else {
+        console.error('Could not find welcome channel');
+      }
+    } catch (error) {
+      console.error('Error sending welcome message:', error);
+    }
   } catch (error) {
     console.error('Error registering slash commands:', error);
   }

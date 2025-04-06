@@ -4,8 +4,8 @@ module.exports = {
   defaultPort: 19231,
   
   // Bot settings
-  statusUpdateInterval: 2 * 60 * 1000, // 2 minutes
-  statusChannelId: '1350087236812800050',
+  statusUpdateInterval: 0.5 * 60 * 1000, 
+  statusChannelId: '1357623867824144435',
   embedColor: {
     online: '#00AA00',
     offline: '#FF0000',
