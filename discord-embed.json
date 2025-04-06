@@ -1,9 +1,9 @@
 {
   "title": "🎮 Welcome to Uduality Minecraft Server",
-  "description": "Join our vibrant community and start your adventure! We're a friendly server with voice chat support and regular events.",
+  "description": "Join our server !",
   "color": 3066993,
   "thumbnail": {
-    "url": "https://i.imgur.com/8JqXqXZ.png"
+    "url": "https://imgur.com/5ccSyrg"
   },
   "fields": [
     {
@@ -14,22 +14,17 @@
     {
       "name": "⚙️ Requirements",
       "value": "• Minecraft Java Edition 1.21.4\n• Fabric Loader (For Non-cracked clients)\n• Simple Voice Chat mod\n• Discord account (for voice chat)",
-      "inline": false
+      "inline": true
     },
     {
       "name": "🚀 Official Installation",
       "value": "1. Install Fabric Loader from [fabricmc.net](https://fabricmc.net/use/)\n2. Download Simple Voice Chat from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/simple-voice-chat)\n3. Place mod in your `.minecraft/mods` folder\n4. Launch Minecraft with Fabric profile",
-      "inline": false
+      "inline": true
     },
     {
       "name": "🔓 Legacy Launcher Guide",
       "value": "1. Download [Legacy Launcher](https://llaun.ch/)\n2. Create new profile with Fabric 1.21.4\n3. Add Simple Voice Chat to profile's mods folder\n4. Launch and connect to `play.uduality.site`",
       "inline": false
-    },
-    {
-      "name": "🎯 Quick Links",
-      "value": "• [Discord](https://discord.gg/uduality)\n• [Website](https://uduality.site)\n• [Rules](https://uduality.site/rules)",
-      "inline": true
     },
     {
       "name": "❓ Need Help?",
