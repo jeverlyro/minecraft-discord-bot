@@ -3,7 +3,7 @@
   "description": "Join our server !",
   "color": 3066993,
   "thumbnail": {
-    "url": "https://imgur.com/5ccSyrg"
+    "url": "https://i.pinimg.com/1200x/aa/61/aa/aa61aa756619385b07620068f77df0fb.jpg"
   },
   "fields": [
     {
@@ -28,12 +28,11 @@
     },
     {
       "name": "❓ Need Help?",
-      "value": "• DM @justrecht for support\n• Join our Discord for community help\n• Check our FAQ in #minecraft-help",
+      "value": "• DM @justrecht for support\n• Join our Discord for community help",
       "inline": true
     }
   ],
   "footer": {
-    "text": "Uduality Minecraft Server • Join us today!",
-    "icon_url": "https://i.imgur.com/8JqXqXZ.png"
+    "text": "Uduality Minecraft Server • Join us today!"
   }
 }
