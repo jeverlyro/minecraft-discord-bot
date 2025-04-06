@@ -14,7 +14,7 @@ const DEFAULT_SERVER = 'play.uduality.site';
 const DEFAULT_PORT = 19231; 
 let lastPlayerCount = 0;
 let lastServerOnline = null;
-const STATUS_CHANNEL_ID = '1350087236812800050';
+const STATUS_CHANNEL_ID = '1357623867824144435';
 
 let serverStats = {
   uptime: 0,
@@ -25,6 +25,11 @@ let serverStats = {
   playerPeak: {
     count: 0,
     timestamp: null
+  },
+  playerEvents: {
+    joins: [],
+    leaves: [],
+    deaths: []
   }
 };
 
@@ -102,6 +107,35 @@ const commands = [
 async function updateBotStatus() {
   try {
     const result = await util.status(DEFAULT_SERVER, DEFAULT_PORT);
+    
+    // Track player count changes
+    if (lastPlayerCount !== result.players.online) {
+      const now = Date.now();
+      if (result.players.online > lastPlayerCount) {
+        // Players joined
+        const joinedCount = result.players.online - lastPlayerCount;
+        serverStats.playerEvents.joins.push({
+          count: joinedCount,
+          timestamp: now,
+          totalPlayers: result.players.online
+        });
+      } else {
+        // Players left
+        const leftCount = lastPlayerCount - result.players.online;
+        serverStats.playerEvents.leaves.push({
+          count: leftCount,
+          timestamp: now,
+          totalPlayers: result.players.online
+        });
+      }
+      
+      // Keep only last 100 events of each type
+      if (serverStats.playerEvents.joins.length > 100) serverStats.playerEvents.joins.shift();
+      if (serverStats.playerEvents.leaves.length > 100) serverStats.playerEvents.leaves.shift();
+      
+      saveServerStats();
+    }
+    
     lastPlayerCount = result.players.online;
     
     // Update player statistics
@@ -279,11 +313,12 @@ client.on('interactionCreate', async interaction => {
       
       const embed = new EmbedBuilder()
         .setColor(result.players.online > 0 ? '#00AA00' : '#FFAA00')
-        .setTitle(`${serverAddress}:${serverPort} Status`)
+        .setTitle(`🟢 ${serverAddress}:${serverPort} Status`)
         .setDescription(`**Server Version:** ${result.version.name}`)
         .addFields(
           { name: '👥 Players', value: `${result.players.online}/${result.players.max}`, inline: true },
-          { name: '📊 Latency', value: `${result.roundTripLatency}ms`, inline: true }
+          { name: '📊 Latency', value: `${result.roundTripLatency}ms`, inline: true },
+          { name: '🔄 Protocol', value: `${result.version.protocol}`, inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Last updated', iconURL: client.user.displayAvatarURL() });
@@ -295,6 +330,12 @@ client.on('interactionCreate', async interaction => {
       if (result.motd && result.motd.clean) {
         embed.addFields({ name: '📝 MOTD', value: result.motd.clean });
       }
+
+      // Add player sample if available
+      if (result.players.sample && result.players.sample.length > 0) {
+        const playerList = result.players.sample.map(player => `• ${player.name}`).join('\n');
+        embed.addFields({ name: '🎮 Online Players', value: playerList.substring(0, 1024) });
+      }
       
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
@@ -303,6 +344,7 @@ client.on('interactionCreate', async interaction => {
         .setColor('#FF0000')
         .setTitle('❌ Connection Error')
         .setDescription(`Failed to connect to server ${serverAddress}:${serverPort}`)
+        .addFields({ name: 'Error Details', value: error.message })
         .setTimestamp();
       
       await interaction.editReply({ embeds: [errorEmbed] });
@@ -312,20 +354,37 @@ client.on('interactionCreate', async interaction => {
   else if (commandName === 'help') {
     const helpEmbed = new EmbedBuilder()
       .setColor('#0099FF')
-      .setTitle('Minecraft Server Status Bot - Help')
-      .setDescription('List of available commands:')
+      .setTitle('🎮 Minecraft Server Status Bot - Help')
+      .setDescription('A comprehensive bot for monitoring your Minecraft server status and player activity.')
       .addFields(
-        { name: '`/status [server] [port]`', value: 'Check status of a Minecraft server', inline: false },
-        { name: '`/players [server] [port]`', value: 'Show list of online players', inline: false },
-        { name: '`/serverinfo`', value: 'Show detailed information about the default server', inline: false },
-        { name: '`/ping`', value: 'Check the bot\'s response time', inline: false },
-        { name: '`/help`', value: 'Show this help message', inline: false },
-        { name: '`/history`', value: 'Show server uptime history', inline: false },
-        { name: '`/subscribe`', value: 'Subscribe to server status notifications', inline: false },
-        { name: '`/config`', value: 'Configure bot settings (Admin only)', inline: false }
+        { 
+          name: '📊 Status Commands', 
+          value: [
+            '`/status [server] [port]` - Check detailed server status',
+            '`/serverinfo` - View comprehensive server information',
+            '`/ping` - Check bot and API response times'
+          ].join('\n'),
+          inline: false 
+        },
+        {
+          name: '👥 Player Commands',
+          value: [
+            '`/players [server] [port]` - List all online players',
+            '`/history` - View server statistics and recent events'
+          ].join('\n'),
+          inline: false
+        },
+        {
+          name: '⚙️ Configuration',
+          value: [
+            '`/config` - Configure bot settings (Admin only)',
+            '`/subscribe` - Subscribe to server notifications'
+          ].join('\n'),
+          inline: false
+        }
       )
       .setFooter({ 
-        text: 'If server and port are not specified, defaults will be used', 
+        text: 'Tip: Use /help [command] for detailed information about a specific command', 
         iconURL: client.user.displayAvatarURL() 
       })
       .setTimestamp();
@@ -344,8 +403,13 @@ client.on('interactionCreate', async interaction => {
       
       const embed = new EmbedBuilder()
         .setColor('#00AA00')
-        .setTitle(`${serverAddress} - Player List`)
+        .setTitle(`👥 ${serverAddress} - Player List`)
         .setDescription(`**Total Online:** ${result.players.online}/${result.players.max}`)
+        .addFields(
+          { name: '📊 Server Status', value: '🟢 Online', inline: true },
+          { name: '🔧 Version', value: result.version.name, inline: true },
+          { name: '📈 Peak Players', value: `${serverStats.playerPeak.count}`, inline: true }
+        )
         .setTimestamp()
         .setFooter({ text: 'Last updated', iconURL: client.user.displayAvatarURL() });
       
@@ -358,6 +422,22 @@ client.on('interactionCreate', async interaction => {
         embed.setDescription('**No players online**')
              .setColor('#FFAA00');
       }
+
+      // Add recent player events if available
+      if (serverStats.playerEvents.joins.length > 0 || serverStats.playerEvents.leaves.length > 0) {
+        const recentJoins = serverStats.playerEvents.joins.slice(-3).map(event => {
+          const date = new Date(event.timestamp);
+          return `• 👋 ${event.count} player(s) joined - ${date.toLocaleString()}`;
+        }).join('\n');
+        
+        const recentLeaves = serverStats.playerEvents.leaves.slice(-3).map(event => {
+          const date = new Date(event.timestamp);
+          return `• 👋 ${event.count} player(s) left - ${date.toLocaleString()}`;
+        }).join('\n');
+        
+        if (recentJoins) embed.addFields({ name: '📥 Recent Joins', value: recentJoins });
+        if (recentLeaves) embed.addFields({ name: '📤 Recent Leaves', value: recentLeaves });
+      }
       
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
@@ -366,6 +446,7 @@ client.on('interactionCreate', async interaction => {
         .setColor('#FF0000')
         .setTitle('❌ Connection Error')
         .setDescription(`Failed to connect to server ${serverAddress}:${serverPort}`)
+        .addFields({ name: 'Error Details', value: error.message })
         .setTimestamp();
       
       await interaction.editReply({ embeds: [errorEmbed] });
@@ -377,9 +458,11 @@ client.on('interactionCreate', async interaction => {
     const pingEmbed = new EmbedBuilder()
       .setColor('#0099FF')
       .setTitle('🏓 Pong!')
+      .setDescription('Bot and API latency information')
       .addFields(
-        { name: 'Bot Latency', value: `${sent.createdTimestamp - interaction.createdTimestamp}ms`, inline: true },
-        { name: 'API Latency', value: `${Math.round(client.ws.ping)}ms`, inline: true }
+        { name: '🤖 Bot Latency', value: `${sent.createdTimestamp - interaction.createdTimestamp}ms`, inline: true },
+        { name: '🌐 API Latency', value: `${Math.round(client.ws.ping)}ms`, inline: true },
+        { name: '📊 Uptime', value: `${Math.round(client.uptime / 1000 / 60)} minutes`, inline: true }
       )
       .setTimestamp();
       
@@ -394,13 +477,15 @@ client.on('interactionCreate', async interaction => {
       
       const serverInfoEmbed = new EmbedBuilder()
         .setColor('#0099FF')
-        .setTitle(`${DEFAULT_SERVER} - Server Information`)
+        .setTitle(`ℹ️ ${DEFAULT_SERVER} - Server Information`)
         .setDescription('Detailed information about the default Minecraft server')
         .addFields(
           { name: '📋 Server Address', value: `\`${DEFAULT_SERVER}:${DEFAULT_PORT}\``, inline: false },
           { name: '🔧 Version', value: result.version.name, inline: true },
           { name: '👥 Players', value: `${result.players.online}/${result.players.max}`, inline: true },
-          { name: '📊 Latency', value: `${result.roundTripLatency}ms`, inline: true }
+          { name: '📊 Latency', value: `${result.roundTripLatency}ms`, inline: true },
+          { name: '🔄 Protocol', value: `${result.version.protocol}`, inline: true },
+          { name: '🏆 Player Peak', value: `${serverStats.playerPeak.count}`, inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Default server information', iconURL: client.user.displayAvatarURL() });
@@ -413,6 +498,16 @@ client.on('interactionCreate', async interaction => {
         const playerList = result.players.sample.map(player => `• ${player.name}`).join('\n');
         serverInfoEmbed.addFields({ name: '🎮 Online Players', value: playerList.substring(0, 1024) });
       }
+
+      // Add server statistics
+      const uptimeHours = (serverStats.uptime / (1000 * 60 * 60)).toFixed(2);
+      const downtimeHours = (serverStats.downtime / (1000 * 60 * 60)).toFixed(2);
+      const upPercentage = ((serverStats.uptime / (serverStats.uptime + serverStats.downtime)) * 100).toFixed(2);
+      
+      serverInfoEmbed.addFields(
+        { name: '⏱️ Uptime', value: `${uptimeHours} hours (${upPercentage}%)`, inline: true },
+        { name: '⏱️ Downtime', value: `${downtimeHours} hours`, inline: true }
+      );
       
       await interaction.editReply({ embeds: [serverInfoEmbed] });
     } catch (error) {
@@ -421,6 +516,7 @@ client.on('interactionCreate', async interaction => {
         .setColor('#FF0000')
         .setTitle('❌ Connection Error')
         .setDescription(`Failed to connect to the default server: ${DEFAULT_SERVER}:${DEFAULT_PORT}`)
+        .addFields({ name: 'Error Details', value: error.message })
         .setTimestamp();
       
       await interaction.editReply({ embeds: [errorEmbed] });
@@ -435,11 +531,11 @@ client.on('interactionCreate', async interaction => {
       
       const historyEmbed = new EmbedBuilder()
         .setColor('#0099FF')
-        .setTitle(`${DEFAULT_SERVER} - Server History`)
-        .setDescription('Server uptime statistics and history')
+        .setTitle(`📊 ${DEFAULT_SERVER} - Server History`)
+        .setDescription('Comprehensive server statistics and recent events')
         .addFields(
-          { name: '⬆️ Uptime', value: `${uptimeHours} hours (${upPercentage}%)`, inline: true },
-          { name: '⬇️ Downtime', value: `${downtimeHours} hours`, inline: true },
+          { name: '⏱️ Uptime', value: `${uptimeHours} hours (${upPercentage}%)`, inline: true },
+          { name: '⏱️ Downtime', value: `${downtimeHours} hours`, inline: true },
           { name: '🏆 Player Peak', value: `${serverStats.playerPeak.count} players`, inline: true }
         )
         .setTimestamp()
@@ -452,7 +548,29 @@ client.on('interactionCreate', async interaction => {
           return `• ${event.status === 'online' ? '🟢' : '🔴'} ${event.status} - ${date.toLocaleString()}`;
         }).join('\n');
         
-        historyEmbed.addFields({ name: '📜 Recent Events', value: recentEvents });
+        historyEmbed.addFields({ name: '📜 Recent Status Changes', value: recentEvents });
+      }
+      
+      // Add recent player events
+      if (serverStats.playerEvents.joins.length > 0 || serverStats.playerEvents.leaves.length > 0 || serverStats.playerEvents.deaths.length > 0) {
+        const recentJoins = serverStats.playerEvents.joins.slice(-3).map(event => {
+          const date = new Date(event.timestamp);
+          return `• 👋 ${event.count} player(s) joined - ${date.toLocaleString()}`;
+        }).join('\n');
+        
+        const recentLeaves = serverStats.playerEvents.leaves.slice(-3).map(event => {
+          const date = new Date(event.timestamp);
+          return `• 👋 ${event.count} player(s) left - ${date.toLocaleString()}`;
+        }).join('\n');
+        
+        const recentDeaths = serverStats.playerEvents.deaths.slice(-3).map(event => {
+          const date = new Date(event.timestamp);
+          return `• 💀 ${event.player} died from ${event.cause} - ${date.toLocaleString()}`;
+        }).join('\n');
+        
+        if (recentJoins) historyEmbed.addFields({ name: '📥 Recent Joins', value: recentJoins });
+        if (recentLeaves) historyEmbed.addFields({ name: '📤 Recent Leaves', value: recentLeaves });
+        if (recentDeaths) historyEmbed.addFields({ name: '💀 Recent Deaths', value: recentDeaths });
       }
       
       await interaction.reply({ embeds: [historyEmbed] });
@@ -463,26 +581,34 @@ client.on('interactionCreate', async interaction => {
   }
   
   else if (commandName === 'subscribe') {
-    // For now, just acknowledge the command - this would need a database to fully implement
     const type = options.getString('type');
     const responseEmbed = new EmbedBuilder()
       .setColor('#0099FF')
-      .setTitle('Subscription Added')
+      .setTitle('📢 Subscription Added')
       .setDescription(`You've subscribed to ${type} notifications for ${DEFAULT_SERVER}`)
-      .addFields({ 
-        name: 'Coming Soon', 
-        value: 'This feature is under development. Notifications will be sent to your DMs when enabled.' 
-      })
+      .addFields(
+        { 
+          name: '📋 Subscription Details', 
+          value: [
+            `• Type: ${type}`,
+            `• Server: ${DEFAULT_SERVER}`,
+            `• Status: Active`
+          ].join('\n')
+        },
+        { 
+          name: 'ℹ️ Coming Soon', 
+          value: 'This feature is under development. Notifications will be sent to your DMs when enabled.' 
+        }
+      )
       .setTimestamp();
       
     await interaction.reply({ embeds: [responseEmbed], ephemeral: true });
   }
   
   else if (commandName === 'config') {
-    // Only allow server admins to use this command
     if (!interaction.memberPermissions.has('ADMINISTRATOR')) {
       await interaction.reply({ 
-        content: 'You need administrator permissions to use this command', 
+        content: '❌ You need administrator permissions to use this command', 
         ephemeral: true 
       });
       return;
@@ -491,12 +617,15 @@ client.on('interactionCreate', async interaction => {
     const setting = options.getString('setting');
     const value = options.getString('value');
     
-    // Placeholder for configuration
     const configEmbed = new EmbedBuilder()
       .setColor('#0099FF')
-      .setTitle('Bot Configuration')
-      .setDescription(`Configuration setting "${setting}" was updated`)
-      .addFields({ name: 'New Value', value: value })
+      .setTitle('⚙️ Bot Configuration')
+      .setDescription('Configuration settings have been updated')
+      .addFields(
+        { name: '📋 Setting', value: setting, inline: true },
+        { name: '📊 New Value', value: value, inline: true },
+        { name: '👤 Updated By', value: interaction.user.tag, inline: true }
+      )
       .setTimestamp();
       
     await interaction.reply({ embeds: [configEmbed] });
