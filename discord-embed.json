@@ -1,35 +1,44 @@
 {
-  "title": "Join Our Minecraft Server",
-  "description": "Ready to play? Follow these steps to join our server.",
+  "title": "🎮 Welcome to Uduality Minecraft Server",
+  "description": "Join our vibrant community and start your adventure! We're a friendly server with voice chat support and regular events.",
   "color": 3066993,
+  "thumbnail": {
+    "url": "https://i.imgur.com/8JqXqXZ.png"
+  },
   "fields": [
     {
+      "name": "📋 Server Information",
+      "value": "• **Address:** `play.uduality.site`\n• **Version:** 1.21.4 Fabric\n• **Status:** 🟢 Online\n• **Voice Chat:** Enabled",
+      "inline": false
+    },
+    {
       "name": "⚙️ Requirements",
-      "value": "• Minecraft Java Edition 1.21.4\n• Fabric Loader (For Non-cracked clients)\n• Simple Voice Chat mod",
+      "value": "• Minecraft Java Edition 1.21.4\n• Fabric Loader (For Non-cracked clients)\n• Simple Voice Chat mod\n• Discord account (for voice chat)",
       "inline": false
     },
     {
-      "name": "🚀 Installation Steps",
-      "value": "1. Install Fabric Loader from [fabricmc.net](https://fabricmc.net/use/)\n2. Download Simple Voice Chat mod from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/simple-voice-chat)\n3. Place mod in your `.minecraft/mods` folder",
+      "name": "🚀 Official Installation",
+      "value": "1. Install Fabric Loader from [fabricmc.net](https://fabricmc.net/use/)\n2. Download Simple Voice Chat from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/simple-voice-chat)\n3. Place mod in your `.minecraft/mods` folder\n4. Launch Minecraft with Fabric profile",
       "inline": false
     },
     {
-      "name": "🌐 Server Address",
-      "value": "play.uduality.site",
+      "name": "🔓 Legacy Launcher Guide",
+      "value": "1. Download [Legacy Launcher](https://llaun.ch/)\n2. Create new profile with Fabric 1.21.4\n3. Add Simple Voice Chat to profile's mods folder\n4. Launch and connect to `play.uduality.site`",
+      "inline": false
+    },
+    {
+      "name": "🎯 Quick Links",
+      "value": "• [Discord](https://discord.gg/uduality)\n• [Website](https://uduality.site)\n• [Rules](https://uduality.site/rules)",
       "inline": true
     },
     {
-      "name": "🔄 Version",
-      "value": "1.21.4 Fabric",
+      "name": "❓ Need Help?",
+      "value": "• DM @justrecht for support\n• Join our Discord for community help\n• Check our FAQ in #minecraft-help",
       "inline": true
-    },
-    {
-      "name": "🔓 Crack (Legacy Launcher) Tutorial",
-      "value": "1. Download and install [Legacy Launcher](https://llaun.ch/)\n2. Create a new profile with Fabric version 1.21.4\n3. Add Simple Voice Chat and other necessary mods to the profile's mods folder\n4. Launch the game and connect to `play.uduality.site`",
-      "inline": false
     }
   ],
   "footer": {
-    "text": "Questions? DM @justrecht"
+    "text": "Uduality Minecraft Server • Join us today!",
+    "icon_url": "https://i.imgur.com/8JqXqXZ.png"
   }
 }
