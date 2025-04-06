@@ -11,7 +11,7 @@ const client = new Client({
 });
 
 const DEFAULT_SERVER = 'play.uduality.site';
-const DEFAULT_PORT = 19231; 
+const DEFAULT_PORT = 7000; 
 let lastPlayerCount = 0;
 let lastServerOnline = null;
 const STATUS_CHANNEL_ID = '1357623867824144435';
