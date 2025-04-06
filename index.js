@@ -31,7 +31,8 @@ let serverStats = {
     joins: [],
     leaves: [],
     deaths: []
-  }
+  },
+  currentPlayers: new Set() // Track current players
 };
 
 const commands = [
@@ -107,49 +108,53 @@ const commands = [
 
 async function updateBotStatus() {
   try {
-    const result = await util.status(DEFAULT_SERVER, DEFAULT_PORT);
+    // Use query protocol for detailed player information
+    const result = await util.query(DEFAULT_SERVER, DEFAULT_PORT);
     
-    // Track player count changes
-    if (lastPlayerCount !== result.players.online) {
-      const now = Date.now();
-      if (result.players.online > lastPlayerCount) {
-        // Players joined
-        const joinedCount = result.players.online - lastPlayerCount;
-        serverStats.playerEvents.joins.push({
-          count: joinedCount,
-          timestamp: now,
-          totalPlayers: result.players.online
-        });
-      } else {
-        // Players left
-        const leftCount = lastPlayerCount - result.players.online;
-        serverStats.playerEvents.leaves.push({
-          count: leftCount,
-          timestamp: now,
-          totalPlayers: result.players.online
-        });
-      }
-      
-      // Keep only last 100 events of each type
-      if (serverStats.playerEvents.joins.length > 100) serverStats.playerEvents.joins.shift();
-      if (serverStats.playerEvents.leaves.length > 100) serverStats.playerEvents.leaves.shift();
-      
-      saveServerStats();
+    // Get current player list
+    const currentPlayers = new Set(result.players.map(p => p.name));
+    
+    // Find players who joined
+    const joinedPlayers = [...currentPlayers].filter(player => !serverStats.currentPlayers.has(player));
+    if (joinedPlayers.length > 0) {
+      serverStats.playerEvents.joins.push({
+        players: joinedPlayers,
+        timestamp: Date.now(),
+        totalPlayers: currentPlayers.size
+      });
     }
     
-    lastPlayerCount = result.players.online;
+    // Find players who left
+    const leftPlayers = [...serverStats.currentPlayers].filter(player => !currentPlayers.has(player));
+    if (leftPlayers.length > 0) {
+      serverStats.playerEvents.leaves.push({
+        players: leftPlayers,
+        timestamp: Date.now(),
+        totalPlayers: currentPlayers.size
+      });
+    }
+    
+    // Update current players
+    serverStats.currentPlayers = currentPlayers;
+    
+    // Keep only last 100 events of each type
+    if (serverStats.playerEvents.joins.length > 100) serverStats.playerEvents.joins.shift();
+    if (serverStats.playerEvents.leaves.length > 100) serverStats.playerEvents.leaves.shift();
+    
+    // Update player count
+    lastPlayerCount = currentPlayers.size;
     
     // Update player statistics
-    if (result.players.online > serverStats.playerPeak.count) {
+    if (currentPlayers.size > serverStats.playerPeak.count) {
       serverStats.playerPeak = {
-        count: result.players.online,
+        count: currentPlayers.size,
         timestamp: Date.now()
       };
       saveServerStats();
     }
     
-    if (result.players.max > serverStats.maxPlayers) {
-      serverStats.maxPlayers = result.players.max;
+    if (result.maxPlayers > serverStats.maxPlayers) {
+      serverStats.maxPlayers = result.maxPlayers;
       saveServerStats();
     }
     
@@ -162,13 +167,13 @@ async function updateBotStatus() {
     
     client.user.setPresence({
       activities: [{
-        name: `${lastPlayerCount}/${result.players.max} players on ${DEFAULT_SERVER}`,
+        name: `${lastPlayerCount}/${result.maxPlayers} players on ${DEFAULT_SERVER}`,
         type: ActivityType.Watching
       }],
       status: 'online'
     });
     
-    console.log(`Updated status: ${lastPlayerCount}/${result.players.max} players online`);
+    console.log(`Updated status: ${lastPlayerCount}/${result.maxPlayers} players online`);
   } catch (error) {
     console.error('Failed to update status:', error);
     
@@ -414,25 +419,23 @@ client.on('interactionCreate', async interaction => {
     try {
       await interaction.deferReply();
       
-      const result = await util.status(serverAddress, serverPort);
+      const result = await util.query(serverAddress, serverPort);
       
       const embed = new EmbedBuilder()
         .setColor('#00AA00')
         .setTitle(`👥 ${serverAddress} - Player List`)
-        .setDescription(`**Total Online:** ${result.players.online}/${result.players.max}`)
+        .setDescription(`**Total Online:** ${result.players.length}/${result.maxPlayers}`)
         .addFields(
           { name: '📊 Server Status', value: '🟢 Online', inline: true },
-          { name: '🔧 Version', value: result.version.name, inline: true },
+          { name: '🔧 Version', value: result.version, inline: true },
           { name: '📈 Peak Players', value: `${serverStats.playerPeak.count}`, inline: true }
         )
         .setTimestamp()
         .setFooter({ text: 'Last updated', iconURL: client.user.displayAvatarURL() });
       
-      if (result.players.sample && result.players.sample.length > 0) {
-        const playerList = result.players.sample.map(player => `• ${player.name}`).join('\n');
+      if (result.players.length > 0) {
+        const playerList = result.players.map(player => `• ${player.name}`).join('\n');
         embed.addFields({ name: '🎮 Online Players', value: playerList.substring(0, 1024) });
-      } else if (result.players.online > 0) {
-        embed.addFields({ name: '🎮 Online Players', value: 'Player names not available' });
       } else {
         embed.setDescription('**No players online**')
              .setColor('#FFAA00');
@@ -442,12 +445,12 @@ client.on('interactionCreate', async interaction => {
       if (serverStats.playerEvents.joins.length > 0 || serverStats.playerEvents.leaves.length > 0) {
         const recentJoins = serverStats.playerEvents.joins.slice(-3).map(event => {
           const date = new Date(event.timestamp);
-          return `• 👋 ${event.count} player(s) joined - ${date.toLocaleString()}`;
+          return `• 👋 ${event.players.join(', ')} joined - ${date.toLocaleString()}`;
         }).join('\n');
         
         const recentLeaves = serverStats.playerEvents.leaves.slice(-3).map(event => {
           const date = new Date(event.timestamp);
-          return `• 👋 ${event.count} player(s) left - ${date.toLocaleString()}`;
+          return `• 👋 ${event.players.join(', ')} left - ${date.toLocaleString()}`;
         }).join('\n');
         
         if (recentJoins) embed.addFields({ name: '📥 Recent Joins', value: recentJoins });
@@ -570,12 +573,12 @@ client.on('interactionCreate', async interaction => {
       if (serverStats.playerEvents.joins.length > 0 || serverStats.playerEvents.leaves.length > 0 || serverStats.playerEvents.deaths.length > 0) {
         const recentJoins = serverStats.playerEvents.joins.slice(-3).map(event => {
           const date = new Date(event.timestamp);
-          return `• 👋 ${event.count} player(s) joined - ${date.toLocaleString()}`;
+          return `• 👋 ${event.players.join(', ')} joined - ${date.toLocaleString()}`;
         }).join('\n');
         
         const recentLeaves = serverStats.playerEvents.leaves.slice(-3).map(event => {
           const date = new Date(event.timestamp);
-          return `• 👋 ${event.count} player(s) left - ${date.toLocaleString()}`;
+          return `• 👋 ${event.players.join(', ')} left - ${date.toLocaleString()}`;
         }).join('\n');
         
         const recentDeaths = serverStats.playerEvents.deaths.slice(-3).map(event => {
