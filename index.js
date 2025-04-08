@@ -130,7 +130,7 @@ async function updateBotStatus() {
     
     client.user.setPresence({
       activities: [{
-        name: `Watching ${lastPlayerCount}/${result.players.max} on Minecraft Server`,
+        name: `${lastPlayerCount}/${result.players.max} on Minecraft Server`,
         type: ActivityType.Watching
       }],
       status: 'online'
