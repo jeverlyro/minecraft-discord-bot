@@ -8,7 +8,7 @@
   "fields": [
     {
       "name": "📋 Server Information",
-      "value": "• **Address:** `play.uduality.site`\n• **Version:** 1.21.4 Fabric\n• **Status:** 🟢 Online\n• **Voice Chat:** Enabled",
+      "value": "• **Address:** `play.uduality.site`\n• **Version:** 1.21.1 Fabric\n• **Status:** 🟢 Online\n• **Voice Chat:** Enabled",
       "inline": false
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "name": "🔓 Legacy Launcher Guide",
-      "value": "1. Download [Legacy Launcher](https://llaun.ch/)\n2. Create new profile with Fabric 1.21.4\n3. Add Simple Voice Chat to profile's mods folder\n4. Launch and connect to `play.uduality.site`",
+      "value": "1. Download [Legacy Launcher](https://llaun.ch/)\n2. Create new profile with Fabric 1.21.1\n3. Add Simple Voice Chat to profile's mods folder\n4. Launch and connect to `play.uduality.site`",
       "inline": false
     },
     {
